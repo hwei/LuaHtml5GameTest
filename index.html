@@ -5,17 +5,27 @@
     <title>能行？</title>
     <script src="js/jquery-1.11.0.min.js"></script>
     <script src="js/lua5.1.5.min.js"></script>
+    <script src="js/pixi.js"></script>
     <script src="js/stats.js"></script>
     <script src="js/graphic.js"></script>
     <script src="js/engine.js"></script>
   </head>
   <style type="text/css">
-    .graphic_stats {
+    .stats {
+      float: left;
     }
-    .logic_stats {
+    #Stats {
+      height: 80px;
     }
   </style>
   <body>
+    <div id="Stats"></div>
+    <div id="Config">
+      <input id="r1" type="radio" name="scale" value="1" checked>
+      <label for="r1">1X</label>
+      <input id="r2" type="radio" name="scale" value="2">
+      <label for="r2">2X</label>
+    </div>
     <canvas id="Screen" width="640" height="480" ></canvas>
   </body>
 </html>

@@ -19,8 +19,8 @@ function GameLogic:Input(keycode, ...)
 end
 
 function GameLogic:Tick(g)
-	self.x = math.fmod(self.x + 1, 640)
-	self.y = math.fmod(self.y + 1, 480)
+	self.x = math.fmod(self.x + 1, 320)
+	self.y = math.fmod(self.y + 1, 240)
 	g(6, self.tile_id, self.x, self.y)
 end
 

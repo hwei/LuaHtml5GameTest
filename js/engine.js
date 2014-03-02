@@ -54,10 +54,10 @@ $(function () {
       var filename = LUA_SRC_LIST[i];
       $.get('lua/' + filename, gen_loaded_lua(filename));
     }
-    var $Screen = $('#Screen');
+
+    var renderer = PIXI.autoDetectRenderer(320, 240, $('#Screen')[0]);
     LoadGraphic(
-      $Screen[0].getContext('2d'),
-      $Screen[0].width, $Screen[0].height,
+      renderer,
       function (g) {
         graphic = g;
         remain -= 1;
@@ -122,9 +122,18 @@ $(function () {
 
     // stats
     var graphic_stats = new Stats();
-    $('body').append($(graphic_stats.domElement).addClass('graphic_stats'));
     var logic_stats = new Stats();
-    $('body').append($(logic_stats.domElement).addClass('logic_stats'));
+    $('#Stats')
+    .append($(graphic_stats.domElement).addClass('stats'))
+    .append($(logic_stats.domElement).addClass('stats'));
+
+    // option
+    $('input:radio[name=scale]').change(function () {
+        var $this = $(this);
+        if ($this.is(':checked')) {
+          graphic.Scale(parseInt($this.val(), 10));
+        }
+    });
 
     // tick
     setInterval(function () {

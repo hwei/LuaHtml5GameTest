@@ -1,62 +1,21 @@
-function LoadGraphic (context, width, height, callback) {
-
-var IMG_SRC_DICT = {
-  'orin_tex.png': 'img/orin_tex.png',
-  'tiles.png': 'img/tiles.png',
-};
-
-(function start_load (image_src_dict, callback){
-  var image_dict = {};
-  var remain_count = 0;
-  var join = false;
-  function img_on_load () {
-    remain_count -= 1;
-    if (join && remain_count === 0) {
-      callback(image_dict);
-    }
-  }
-  for (var name in image_src_dict) {
-    var img = new Image();
-    image_dict[name] = img;
-    img.onLoad = img_on_load;
-    img.src = image_src_dict[name];
-  }
-  join = true;
-  if (remain_count === 0) {
-    callback(image_dict);
-  }
-})(IMG_SRC_DICT, function finish_load (image_dict) {
-  callback(Graphic(image_dict));
-});
-
-
-function Graphic(image_dict) {
+function LoadGraphic (renderer, callback) {
 
 function _Layer() {
-  this.batch_list = [];
-  this.x = 0;
-  this.y = 0;
+  this.container = new PIXI.DisplayObjectContainer();
 }
 
 _Layer.prototype.CreateBatch = function (texture_id) {
   var batch = new _Batch(texture_id);
+  this.container.addChild(batch.batch);
   var batch_id = batch_count + 1;
   batch_dict[batch_id] = batch;
-  this.batch_list.push(batch);
   batch_count += 1;
   return batch_id;
 };
 
 _Layer.prototype.Position = function (x, y) {
-  this.x = x;
-  this.y = y;
-};
-
-_Layer.prototype.Draw = function () {
-  var batch_list = this.batch_list;
-  for(var i in batch_list) {
-    batch_list[i].Draw(this.x, this.y);
-  }
+  this.container.x = x;
+  this.container.y = y;
 };
 
 function MissingTileFactory() {
@@ -64,54 +23,40 @@ function MissingTileFactory() {
 }
 
 function _Batch(texture_id) {
+  console.log(PIXI.SpriteBatch);
+  this.batch = new PIXI.SpriteBatch();
   var tile_new = TileFactory(texture_id);
   if (!tile_new) {
     tile_new = MissingTileFactory;
   }
   this.tile_new = tile_new;
-  this.tile_list = [];
 }
 
 _Batch.prototype.CreateTile = function () {
   var tile = this.tile_new();
+  this.batch.addChild(tile.sprite);
   var tile_id = tile_count + 1;
   tile_dict[tile_id] = tile;
-  this.tile_list.push(tile);
   tile_count += 1;
   return tile_id;
 };
 
-_Batch.prototype.Draw = function (base_x, base_y) {
-  var tile_list = this.tile_list;
-  for (var i in tile_list) {
-    tile_list[i].Draw(context, image_dict, base_x, base_y);
-  }
-};
-
 function _MissingTile() {
-  this.x = 0;
-  this.y = 0;
 }
 
 _MissingTile.prototype.Position = function(x, y) {
-  this.x = x;
-  this.y = y;
 };
 
 _MissingTile.prototype.Frame = function() {};
 
-_MissingTile.prototype.Draw = function(context, image_dict, base_x, base_y) {
-  var x = this.x + base_x;
-  var y = this.y + base_y;
-  context.fillStyle="red";
-  context.fillText("Missing Texture", x, y);
-};
-
 
 var g = {};
 
-var layer_order_list = [];
-var layer_order_2_list = {}; // {1: [_Layer, _Layer], 2: [_Layer, _Layer]}
+var ori_width = renderer.width;
+var ori_height = renderer.height;
+var stage = new PIXI.Stage(0x000000);
+var root_layer = new PIXI.DisplayObjectContainer();
+stage.addChild(root_layer);
 var layer_count = 0;
 var layer_dict = {};
 var batch_count = 0;
@@ -120,17 +65,8 @@ var tile_count = 0;
 var tile_dict = {};
 
 g.CreateLayer = function(z_order) {
-  var layer_list;
-  if (layer_order_list.indexOf(z_order) == -1) {
-    layer_list = [];
-    layer_order_2_list[z_order] = layer_list;
-    layer_order_list.push(z_order);
-    layer_order_list.sort();
-  } else {
-    layer_list = layer_order_2_list[z_order];
-  }
   var layer = new _Layer();
-  layer_list.push(layer);
+  root_layer.addChild(layer.container);
   var layer_id = layer_count + 1;
   layer_dict[layer_id] = layer;
   layer_count += 1;
@@ -172,22 +108,21 @@ g.TileFrame = function() {
   return 1;
 };
 
-g.Draw = function () {
-  context.fillStyle = "rgba(0, 0, 0, 255)";
-  context.fillRect(0, 0, width, height);
-  for(var i in layer_order_list) {
-    var z = layer_order_list[i];
-    var layer_list = layer_order_2_list[z];
-    for(var j in layer_list) {
-      var layer = layer_list[j];
-      layer.Draw();
-    }
-  }
+(function start_load (callback){
+  var loader = new PIXI.AssetLoader(['img/orin_tex_1.json']);
+  loader.onComplete = function () { callback(g); };
+  loader.load();
+})(callback);
+
+g.Draw = function() {
+  renderer.render(stage);
 };
 
-return g;
-
-}
+g.Scale = function(s) {
+  root_layer.scale.x = s;
+  root_layer.scale.y = s;
+  renderer.resize(ori_width * s, ori_height * s);
+};
 
 }
 
@@ -195,23 +130,17 @@ return g;
 var TileFactory = (function () {
 
 function Orin () {
-  this.x = 0;
-  this.y = 0;
+  this.sprite = PIXI.Sprite.fromFrame('run_W_R.png');
+  this.sprite.scale.x = -1;
+  this.sprite.scale.y = 1;
 }
 
 Orin.prototype.Position = function(x, y) {
-  this.x = x;
-  this.y = y;
+  this.sprite.x = x + 32;
+  this.sprite.y = y;
 };
 
 Orin.prototype.Frame = function() {};
-
-Orin.prototype.Draw = function(context, image_dict, base_x, base_y) {
-  var x = this.x + base_x + 16;
-  var y = this.y + base_y + 32;
-  context.drawImage(image_dict['orin_tex.png'], 32, 32, 32, 32, x, y, 32, 32);
-};
-
 
 var classes = {
   1: Orin,
