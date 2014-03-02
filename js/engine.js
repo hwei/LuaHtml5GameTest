@@ -90,12 +90,6 @@ $(function () {
       $Screen[0].width, $Screen[0].height,
       images
     );
-    var graphic_func_dict = {
-      1: function (args) { return graphic.CreateLayer(args[1]); },
-      2: function (args) { return graphic.CreateBatch(args[1], args[2]); },
-      3: function (args) { return graphic.CreateTile(args[1]); },
-      6: function (args) { return graphic.TilePosition(args[1], args[2], args[3]); },
-    };
 
     // Lua VM
     var C = Lua5_1.C;
@@ -103,24 +97,26 @@ $(function () {
     C.luaL_openlibs(L);
 
     // graphic callback
+    var graphic_func_dict = {
+      1: graphic.CreateLayer,
+      2: graphic.CreateBatch,
+      3: graphic.CreateTile,
+      4: graphic.LayerPosition,
+      5: graphic.LayerStyle,
+      6: graphic.TilePosition,
+      7: graphic.TileFrame,
+    };
     var temp_args = [];
     C.lua_pushcfunction(
       L,
       Lua5_1.Runtime.addFunction(function (L) {
         var n = C.lua_gettop(L);
-        for (var i = 1; i <= n; ++i) {
+        var f = graphic_func_dict[C.luaL_checknumber(L, 1)];
+        for (var i = 2; i <= n; ++i) {
           var t = C.luaL_checknumber(L, i);
-          temp_args[i - 1] = t;
+          temp_args[i - 2] = t;
         }
-        var r = graphic_func_dict[temp_args[0]](temp_args);
-
-        // 1: CreateLayer(z_index)
-        // 2: CreateBatch(layer_id, texture_id)
-        // 3: CreateTile(batch_id)
-        // 4: LayerPosition(layer_id, x, y)
-        // 5: LayerStyle(layer_id, ...)
-        // 6: TilePosition(tile_id, x, y)
-        // 7: TileFrame(tile_id, ...)
+        var r = f.apply(graphic, temp_args);
         C.lua_pushnumber(L, r);
         return 1;
       })
