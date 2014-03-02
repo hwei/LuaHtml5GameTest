@@ -11,5 +11,5 @@ Lua可以几乎支持全平台，但很少有Lua游戏引擎支持HTML5平台。
 ## 项目状态 ##
 
 仅仅是初步验证了可行性。
-这个[页面](http://h00w.gitcafe.com/LuaHtml5GameTest/)
+这个[页面](http://hwei.github.io/LuaHtml5GameTest/)
 还称不上是个游戏……
