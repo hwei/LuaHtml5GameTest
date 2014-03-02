@@ -1,4 +1,35 @@
-var Graphic = function (context, width, height, image_dict) {
+function LoadGraphic (context, width, height, callback) {
+
+var IMG_SRC_DICT = {
+  'bunny.png': 'http://www.html5canvastutorials.com/content/labs/html5-canvas-bouncing-bunnies/bunny.png',
+};
+
+(function start_load (image_src_dict, callback){
+  var image_dict = {};
+  var remain_count = 0;
+  var join = false;
+  function img_on_load () {
+    remain_count -= 1;
+    if (join && remain_count === 0) {
+      callback(image_dict);
+    }
+  }
+  for (var name in image_src_dict) {
+    var img = new Image();
+    image_dict[name] = img;
+    img.onLoad = img_on_load;
+    img.src = image_src_dict[name];
+  }
+  join = true;
+  if (remain_count === 0) {
+    callback(image_dict);
+  }
+})(IMG_SRC_DICT, function finish_load (image_dict) {
+  callback(Graphic(image_dict));
+});
+
+
+function Graphic(image_dict) {
 
 function _Layer() {
   this.batch_list = [];
@@ -135,4 +166,6 @@ g.Draw = function () {
 
 return g;
 
-};
+}
+
+}
