@@ -33,7 +33,6 @@ $(function () {
     var dec_end = false;
     var images = {};
     function loaded_one() {
-      console.log('loaded one');
       remain -= 1;
       if (remain === 0 && dec_end) {
         callback(images);
@@ -94,8 +93,8 @@ $(function () {
     var graphic_func_dict = {
       1: function (args) { return graphic.CreateLayer(args[1]); },
       2: function (args) { return graphic.CreateBatch(args[1], args[2]); },
-      3: function (args) { return graphic.CreateSprite(args[1]); },
-      6: function (args) { return graphic.SpriteMove(args[1], args[2], args[3]); },
+      3: function (args) { return graphic.CreateTile(args[1]); },
+      6: function (args) { return graphic.TilePosition(args[1], args[2], args[3]); },
     };
 
     // Lua VM
@@ -116,12 +115,12 @@ $(function () {
         var r = graphic_func_dict[temp_args[0]](temp_args);
 
         // 1: CreateLayer(z_index)
-        // 2: CreateBatch(layer_id, sprite_id)
-        // 3: CreateSprite(batch_id)
-        // 4: LayerMove(layer_id, x, y)
+        // 2: CreateBatch(layer_id, texture_id)
+        // 3: CreateTile(batch_id)
+        // 4: LayerPosition(layer_id, x, y)
         // 5: LayerStyle(layer_id, ...)
-        // 6: SpriteMove(sprite_id, x, y)
-        // 7: SpriteStyle(sprite_id, ...)
+        // 6: TilePosition(tile_id, x, y)
+        // 7: TileFrame(tile_id, ...)
         C.lua_pushnumber(L, r);
         return 1;
       })

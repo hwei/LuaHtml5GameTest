@@ -1,29 +1,23 @@
 var Graphic = function (context, width, height, image_dict) {
 
-var g = {};
-
-var layer_order_list = [];
-var layer_order_2_list = {}; // {1: [_Layer, _Layer], 2: [_Layer, _Layer]}
-var layer_count = 0;
-var layer_dict = {};
-var batch_count = 0;
-var batch_dict = {};
-var sprite_count = 0;
-var sprite_dict = {};
-
 function _Layer() {
   this.batch_list = [];
   this.x = 0;
   this.y = 0;
 }
 
-_Layer.prototype.CreateBatch = function (sprite_id) {
-  var batch = new _Batch(sprite_id);
+_Layer.prototype.CreateBatch = function (texture_id) {
+  var batch = new _Batch(texture_id);
   var batch_id = batch_count + 1;
   batch_dict[batch_id] = batch;
   this.batch_list.push(batch);
   batch_count += 1;
   return batch_id;
+};
+
+_Layer.prototype.Position = function (x, y) {
+  this.x = x;
+  this.y = y;
 };
 
 _Layer.prototype.Draw = function () {
@@ -33,44 +27,55 @@ _Layer.prototype.Draw = function () {
   }
 };
 
-function _Batch(sprite_id) {
-  this.sprite_id = sprite_id;
-  this.sprite_list = [];
+function _Batch(texture_id) {
+  this.texture_id = texture_id;
+  this.tile_list = [];
 }
 
-_Batch.prototype.CreateSprite = function () {
-  var sprite = new _Sprite();
-  var sprite_id = sprite_count + 1;
-  sprite_dict[sprite_id] = sprite;
-  this.sprite_list.push(sprite);
-  sprite_count += 1;
-  return sprite_id;
+_Batch.prototype.CreateTile = function () {
+  var tile = new _Tile();
+  var tile_id = tile_count + 1;
+  tile_dict[tile_id] = tile;
+  this.tile_list.push(tile);
+  tile_count += 1;
+  return tile_id;
 };
 
 _Batch.prototype.Draw = function (base_x, base_y) {
-  var sprite_list = this.sprite_list;
-  for (var i in sprite_list) {
-    sprite_list[i].Draw(base_x, base_y);
+  var tile_list = this.tile_list;
+  for (var i in tile_list) {
+    tile_list[i].Draw(base_x, base_y);
   }
 };
 
-function _Sprite() {
+function _Tile() {
   this.x = 0;
   this.y = 0;
   this.img = image_dict['bunny.png'];
-  console.log(this.img);
 }
 
-_Sprite.prototype.Move = function(x, y) {
+_Tile.prototype.Position = function(x, y) {
   this.x = x;
   this.y = y;
 };
 
-_Sprite.prototype.Draw = function(base_x, base_y) {
+_Tile.prototype.Draw = function(base_x, base_y) {
   var x = this.x + base_x;
   var y = this.y + base_y;
   context.drawImage(this.img, x, y);
 };
+
+
+var g = {};
+
+var layer_order_list = [];
+var layer_order_2_list = {}; // {1: [_Layer, _Layer], 2: [_Layer, _Layer]}
+var layer_count = 0;
+var layer_dict = {};
+var batch_count = 0;
+var batch_dict = {};
+var tile_count = 0;
+var tile_dict = {};
 
 g.CreateLayer = function(z_order) {
   var layer_list;
@@ -90,28 +95,28 @@ g.CreateLayer = function(z_order) {
   return layer_id;
 };
 
-g.CreateBatch = function(layer_id, sprite_id) {
+g.CreateBatch = function(layer_id, tile_id) {
   var layer = layer_dict[layer_id];
   if (layer === undefined) {
     return 0;
   }
-  return layer.CreateBatch(sprite_id);
+  return layer.CreateBatch(tile_id);
 };
 
-g.CreateSprite = function(batch_id) {
+g.CreateTile = function(batch_id) {
   var batch = batch_dict[batch_id];
   if (batch === undefined) {
     return 0;
   }
-  return batch.CreateSprite();
+  return batch.CreateTile();
 };
 
-g.SpriteMove = function(sprite_id, x, y) {
-  var sprite = sprite_dict[sprite_id];
-  if (sprite === undefined) {
+g.TilePosition = function(tile_id, x, y) {
+  var tile = tile_dict[tile_id];
+  if (tile === undefined) {
     return 0;
   }
-  sprite.Move(x, y);
+  tile.Position(x, y);
   return 1;
 };
 
