@@ -1,7 +1,8 @@
 function LoadGraphic (context, width, height, callback) {
 
 var IMG_SRC_DICT = {
-  'bunny.png': 'http://www.html5canvastutorials.com/content/labs/html5-canvas-bouncing-bunnies/bunny.png',
+  'orin_tex.png': 'img/orin_tex.png',
+  'tiles.png': 'img/tiles.png',
 };
 
 (function start_load (image_src_dict, callback){
@@ -58,13 +59,21 @@ _Layer.prototype.Draw = function () {
   }
 };
 
+function MissingTileFactory() {
+  return new _MissingTile();
+}
+
 function _Batch(texture_id) {
-  this.texture_id = texture_id;
+  var tile_new = TileFactory(texture_id);
+  if (!tile_new) {
+    tile_new = MissingTileFactory;
+  }
+  this.tile_new = tile_new;
   this.tile_list = [];
 }
 
 _Batch.prototype.CreateTile = function () {
-  var tile = new _Tile();
+  var tile = this.tile_new();
   var tile_id = tile_count + 1;
   tile_dict[tile_id] = tile;
   this.tile_list.push(tile);
@@ -75,25 +84,27 @@ _Batch.prototype.CreateTile = function () {
 _Batch.prototype.Draw = function (base_x, base_y) {
   var tile_list = this.tile_list;
   for (var i in tile_list) {
-    tile_list[i].Draw(base_x, base_y);
+    tile_list[i].Draw(context, image_dict, base_x, base_y);
   }
 };
 
-function _Tile() {
+function _MissingTile() {
   this.x = 0;
   this.y = 0;
-  this.img = image_dict['bunny.png'];
 }
 
-_Tile.prototype.Position = function(x, y) {
+_MissingTile.prototype.Position = function(x, y) {
   this.x = x;
   this.y = y;
 };
 
-_Tile.prototype.Draw = function(base_x, base_y) {
+_MissingTile.prototype.Frame = function() {};
+
+_MissingTile.prototype.Draw = function(context, image_dict, base_x, base_y) {
   var x = this.x + base_x;
   var y = this.y + base_y;
-  context.drawImage(this.img, x, y);
+  context.fillStyle="red";
+  context.fillText("Missing Texture", x, y);
 };
 
 
@@ -151,6 +162,16 @@ g.TilePosition = function(tile_id, x, y) {
   return 1;
 };
 
+g.TileFrame = function() {
+  var tile_id = arguments[0];
+  var tile = tile_dict[tile_id];
+  if (tile === undefined) {
+    return 0;
+  }
+  tile.Frame.apply(tile, Array.prototype.slice.call(arguments, 1));
+  return 1;
+};
+
 g.Draw = function () {
   context.fillStyle = "rgba(0, 0, 0, 255)";
   context.fillRect(0, 0, width, height);
@@ -169,3 +190,38 @@ return g;
 }
 
 }
+
+
+var TileFactory = (function () {
+
+function Orin () {
+  this.x = 0;
+  this.y = 0;
+}
+
+Orin.prototype.Position = function(x, y) {
+  this.x = x;
+  this.y = y;
+};
+
+Orin.prototype.Frame = function() {};
+
+Orin.prototype.Draw = function(context, image_dict, base_x, base_y) {
+  var x = this.x + base_x + 16;
+  var y = this.y + base_y + 32;
+  context.drawImage(image_dict['orin_tex.png'], 32, 32, 32, 32, x, y, 32, 32);
+};
+
+
+var classes = {
+  1: Orin,
+};
+
+return function (texture_id) {
+  return function () {
+    return new classes[texture_id]();
+  };
+};
+
+})();
+
