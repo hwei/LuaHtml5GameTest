@@ -23,7 +23,6 @@ function MissingTileFactory() {
 }
 
 function _Batch(texture_id) {
-  console.log(PIXI.SpriteBatch);
   this.batch = new PIXI.SpriteBatch();
   var tile_new = TileFactory(texture_id);
   if (!tile_new) {
