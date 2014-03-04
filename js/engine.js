@@ -25,7 +25,13 @@ $(function () {
     'pl/class.lua',
     'pl/utils.lua',
     'pl/compat.lua',
+    'pl/List.lua',
+    'pl/tablex.lua',
+    'pl/types.lua',
   ];
+
+  var width = 320;
+  var height = 240;
 
   (function load_all_resource(callback){
     var graphic = null;
@@ -55,7 +61,7 @@ $(function () {
       $.get('lua/' + filename, gen_loaded_lua(filename));
     }
 
-    var renderer = PIXI.autoDetectRenderer(320, 240, $('#Screen')[0]);
+    var renderer = PIXI.autoDetectRenderer(width, height, $('#Screen')[0]);
     LoadGraphic(
       renderer,
       function (g) {
@@ -77,6 +83,28 @@ $(function () {
     var L = C.lua_open();
     C.luaL_openlibs(L);
 
+    // seed random
+    C.lua_pushcfunction(
+      L,
+      Lua5_1.Runtime.addFunction(function (L) {
+        var n = C.lua_gettop(L);
+        var seed = C.luaL_checknumber(L, 1);
+        Math.seedrandom(seed);
+        return 0;
+      })
+    );
+    C.lua_setglobal(L, 'SRandSet');
+    C.lua_pushcfunction(
+      L,
+      Lua5_1.Runtime.addFunction(function (L) {
+        var n = C.lua_gettop(L);
+        var r = Math.random();
+        C.lua_pushnumber(L, r);
+        return 1;
+      })
+    );
+    C.lua_setglobal(L, 'SRandGet');
+
     // graphic callback
     var graphic_func_dict = {
       1: graphic.CreateLayer,
@@ -92,7 +120,11 @@ $(function () {
       L,
       Lua5_1.Runtime.addFunction(function (L) {
         var n = C.lua_gettop(L);
-        var f = graphic_func_dict[C.luaL_checknumber(L, 1)];
+        var fid = C.luaL_checknumber(L, 1);
+        var f = graphic_func_dict[fid];
+        if (!f) {
+          throw 'Invalid graphic call: ' + fid;
+        }
         for (var i = 2; i <= n; ++i) {
           var t = C.luaL_checknumber(L, i);
           temp_args[i - 2] = t;
@@ -111,7 +143,9 @@ $(function () {
     C.lua_getfield(L, -1, 'GameLogic'); // module, GameLogic
     C.lua_remove(L, -2); // GameLogic
     C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, graphic_func); // GameLogic, graphic_func
-    C.lua_call(L, 1, 1); // game_logic
+    C.lua_pushnumber(L, width); // GameLogic, graphic_func, width
+    C.lua_pushnumber(L, height); // GameLogic, graphic_func, width, height
+    C.lua_call(L, 3, 1); // game_logic
     var game_logic = C.luaL_ref(L, C.LUA_REGISTRYINDEX); //
     C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, game_logic); // game_logic
 
@@ -131,12 +165,17 @@ $(function () {
     });
 
     // tick
-    setInterval(function () {
+    var interval_id = setInterval(function () {
       logic_stats.begin();
       C.lua_getfield(L, -1, 'Tick'); // game_logic, Tick
       C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, game_logic); // game_logic, Tick, game_logic
       C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, graphic_func); // game_logic, Tick, game_logic, graphic_func
-      C.lua_call(L, 2, 0); // game_logic
+      try {
+        C.lua_call(L, 2, 0); // game_logic
+      } catch (err) {
+        clearInterval(interval_id);
+        throw err;
+      }
       logic_stats.end();
     }, 1000 / 60);
 

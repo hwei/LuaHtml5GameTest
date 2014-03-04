@@ -22,7 +22,7 @@ function MissingTileFactory() {
   return new _MissingTile();
 }
 
-function _Batch(texture_id) {
+function _Batch (texture_id) {
   this.batch = new PIXI.SpriteBatch();
   var tile_new = TileFactory(texture_id);
   if (!tile_new) {
@@ -63,7 +63,7 @@ var batch_dict = {};
 var tile_count = 0;
 var tile_dict = {};
 
-g.CreateLayer = function(z_order) {
+g.CreateLayer = function () {
   var layer = new _Layer();
   root_layer.addChild(layer.container);
   var layer_id = layer_count + 1;
@@ -72,7 +72,7 @@ g.CreateLayer = function(z_order) {
   return layer_id;
 };
 
-g.CreateBatch = function(layer_id, tile_id) {
+g.CreateBatch = function (layer_id, tile_id) {
   var layer = layer_dict[layer_id];
   if (layer === undefined) {
     return 0;
@@ -80,7 +80,7 @@ g.CreateBatch = function(layer_id, tile_id) {
   return layer.CreateBatch(tile_id);
 };
 
-g.CreateTile = function(batch_id) {
+g.CreateTile = function (batch_id) {
   var batch = batch_dict[batch_id];
   if (batch === undefined) {
     return 0;
@@ -88,7 +88,18 @@ g.CreateTile = function(batch_id) {
   return batch.CreateTile();
 };
 
-g.TilePosition = function(tile_id, x, y) {
+g.LayerPosition = function (layer_id, x, y) {
+  var layer = layer_dict[layer_id];
+  if (layer === undefined) {
+    return 0;
+  }
+  var c = layer.container;
+  c.x = x;
+  c.y = y;
+  return 1;
+};
+
+g.TilePosition = function (tile_id, x, y) {
   var tile = tile_dict[tile_id];
   if (tile === undefined) {
     return 0;
@@ -107,12 +118,6 @@ g.TileFrame = function() {
   return 1;
 };
 
-(function start_load (callback){
-  var loader = new PIXI.AssetLoader(['img/orin_tex_1.json']);
-  loader.onComplete = function () { callback(g); };
-  loader.load();
-})(callback);
-
 g.Draw = function() {
   renderer.render(stage);
 };
@@ -122,6 +127,15 @@ g.Scale = function(s) {
   root_layer.scale.y = s;
   renderer.resize(ori_width * s, ori_height * s);
 };
+
+(function start_load (callback){
+  var loader = new PIXI.AssetLoader([
+    'img/orin_tex_1.json',
+    'img/land.json',
+  ]);
+  loader.onComplete = function () { callback(g); };
+  loader.load();
+})(callback);
 
 }
 
@@ -135,14 +149,43 @@ function Orin () {
 }
 
 Orin.prototype.Position = function(x, y) {
-  this.sprite.x = x + 32;
-  this.sprite.y = y;
+  this.sprite.x = x + 16;
+  this.sprite.y = y - 32;
 };
 
 Orin.prototype.Frame = function() {};
 
+var land_frames = null;
+
+function Land () {
+  if (land_frames === null) {
+    land_frames = {};
+    for (var i = 0; i < 0x10; ++i) {
+      var name = 'land_' + i.toString(16) + '.png';
+      land_frames[i] = PIXI.Texture.fromFrame(name);
+    }
+  }
+  this.sprite = new PIXI.Sprite(land_frames[0]);
+}
+
+Land.prototype.Position = function(x, y) {
+  this.sprite.x = x;
+  this.sprite.y = y;
+};
+
+Land.prototype.Frame = function(i) {
+  if (i in land_frames) {
+    this.sprite.setTexture(land_frames[i]);
+    this.sprite.alpha = 1;
+  } else {
+    this.sprite.alpha = 0;
+  }
+};
+
+
 var classes = {
   1: Orin,
+  2: Land,
 };
 
 return function (texture_id) {
