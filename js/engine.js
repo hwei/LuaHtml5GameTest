@@ -104,21 +104,16 @@ $(function () {
     );
     var graphic_func = C.luaL_ref(L, C.LUA_REGISTRYINDEX);
 
-    // game logic object
+    // game logic init
     C.lua_getglobal(L, 'require');
     C.lua_pushstring(L, 'main');
     C.lua_call(L, 1, 1); // module
     C.lua_getfield(L, -1, 'GameLogic'); // module, GameLogic
     C.lua_remove(L, -2); // GameLogic
-    C.lua_call(L, 0, 1); // game_logic
+    C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, graphic_func); // GameLogic, graphic_func
+    C.lua_call(L, 1, 1); // game_logic
     var game_logic = C.luaL_ref(L, C.LUA_REGISTRYINDEX); //
-
-    // init
     C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, game_logic); // game_logic
-    C.lua_getfield(L, -1, 'Init'); // game_logic, Init
-    C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, game_logic); // game_logic, Init, game_logic
-    C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, graphic_func); // game_logic, Init, game_logic, graphic_func
-    C.lua_call(L, 2, 0); // game_logic
 
     // stats
     var graphic_stats = new Stats();

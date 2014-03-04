@@ -2,11 +2,7 @@ local class = require 'pl.class'
 
 local GameLogic = class()
 
-function GameLogic:_init()
-	print('aaaa')
-end
-
-function GameLogic:Init(g)
+function GameLogic:_init(g)
 	print('hahaha')
 	self.layer_id = g(1, 0)
 	self.batch_id = g(2, self.layer_id, 1)
