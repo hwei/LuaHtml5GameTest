@@ -83,27 +83,32 @@ $(function () {
     var L = C.lua_open();
     C.luaL_openlibs(L);
 
-    // seed random
-    C.lua_pushcfunction(
-      L,
+    C.lua_getglobal(L, 'package'); // package
+    C.lua_getfield(L, -1, 'loaded'); // package, loaded
+    C.lua_remove(L, -2); // loaded
+
+    // seed random module
+    C.lua_createtable(L, 0, 2);
+    C.lua_pushcfunction(L,
       Lua5_1.Runtime.addFunction(function (L) {
-        var n = C.lua_gettop(L);
         var seed = C.luaL_checknumber(L, 1);
         Math.seedrandom(seed);
         return 0;
       })
     );
-    C.lua_setglobal(L, 'SRandSet');
-    C.lua_pushcfunction(
-      L,
+    C.lua_setfield(L, -2, 'setseed');
+    C.lua_pushcfunction(L,
       Lua5_1.Runtime.addFunction(function (L) {
-        var n = C.lua_gettop(L);
         var r = Math.random();
         C.lua_pushnumber(L, r);
         return 1;
       })
     );
-    C.lua_setglobal(L, 'SRandGet');
+    C.lua_setfield(L, -2, 'getrandom');
+    // loaded, seedrandom
+
+    C.lua_setfield(L, -2, 'seedrandom'); // loaded
+    C.lua_pop(L, 1); //
 
     // graphic callback
     var graphic_func_dict = {
@@ -134,20 +139,18 @@ $(function () {
         return 1;
       })
     );
-    var graphic_func = C.luaL_ref(L, C.LUA_REGISTRYINDEX);
+    // graphic_func
 
     // game logic init
     C.lua_getglobal(L, 'require');
     C.lua_pushstring(L, 'main');
-    C.lua_call(L, 1, 1); // module
-    C.lua_getfield(L, -1, 'GameLogic'); // module, GameLogic
-    C.lua_remove(L, -2); // GameLogic
-    C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, graphic_func); // GameLogic, graphic_func
-    C.lua_pushnumber(L, width); // GameLogic, graphic_func, width
-    C.lua_pushnumber(L, height); // GameLogic, graphic_func, width, height
-    C.lua_call(L, 3, 1); // game_logic
-    var game_logic = C.luaL_ref(L, C.LUA_REGISTRYINDEX); //
-    C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, game_logic); // game_logic
+    C.lua_call(L, 1, 1); // graphic_func, module
+    C.lua_getfield(L, -1, 'GameLogic'); // graphic_func, module, GameLogic
+    C.lua_remove(L, -2); // graphic_func, GameLogic
+    C.lua_pushvalue(L, -2); // graphic_func, GameLogic, graphic_func
+    C.lua_pushnumber(L, width); // graphic_func, GameLogic, graphic_func, width
+    C.lua_pushnumber(L, height); // graphic_func, GameLogic, graphic_func, width, height
+    C.lua_call(L, 3, 1); // graphic_func, game_logic
 
     // stats
     var graphic_stats = new Stats();
@@ -167,11 +170,11 @@ $(function () {
     // tick
     var interval_id = setInterval(function () {
       logic_stats.begin();
-      C.lua_getfield(L, -1, 'Tick'); // game_logic, Tick
-      C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, game_logic); // game_logic, Tick, game_logic
-      C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, graphic_func); // game_logic, Tick, game_logic, graphic_func
+      C.lua_getfield(L, -1, 'Tick'); // graphic_func, game_logic, Tick
+      C.lua_pushvalue(L, -2); // graphic_func, game_logic, Tick, game_logic
+      C.lua_pushvalue(L, -4); // graphic_func, game_logic, Tick, game_logic, graphic_func
       try {
-        C.lua_call(L, 2, 0); // game_logic
+        C.lua_call(L, 2, 0); // graphic_func, game_logic
       } catch (err) {
         clearInterval(interval_id);
         throw err;

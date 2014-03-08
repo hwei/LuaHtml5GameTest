@@ -137,6 +137,8 @@ function IntFuncCache:Set(x, y)
 	self.outputs[i] = y
 end
 
+local seedrandom = require 'seedrandom'
+
 local land_random_cache = IntFuncCache(64)
 
 local function random_func(tx)
@@ -145,8 +147,8 @@ local function random_func(tx)
 		return r
 	end
     local l = math.floor(tx / 8)
-    SRandSet(l)
-    r = math.floor(SRandGet() * 3)
+    seedrandom.setseed(l)
+    r = math.floor(seedrandom.getrandom() * 3)
     land_random_cache:Set(tx, r)
     return r
 end
