@@ -118,7 +118,7 @@ $(function () {
       4: graphic.LayerPosition,
       5: graphic.LayerStyle,
       6: graphic.TilePosition,
-      7: graphic.TileFrame,
+      7: graphic.TileStyle,
     };
     var temp_args = [];
     C.lua_pushcfunction(
@@ -167,6 +167,8 @@ $(function () {
         }
     });
 
+    var draw_tick = 0;
+
     // tick
     var interval_id = setInterval(function () {
       logic_stats.begin();
@@ -179,13 +181,22 @@ $(function () {
         clearInterval(interval_id);
         throw err;
       }
+      draw_tick += 1;
       logic_stats.end();
     }, 1000 / 60);
 
     // draw
     function draw() {
       graphic_stats.begin();
-      graphic.Draw();
+      var need_draw = false;
+      while(draw_tick > 0) {
+        draw_tick -= 1;
+        graphic.Tick();
+        need_draw = true;
+      }
+      if (need_draw) {
+        graphic.Draw();
+      }
       graphic_stats.end();
       window.requestAnimationFrame(draw);
     }

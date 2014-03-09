@@ -48,7 +48,7 @@ function Land:_init(g, width, height, land_func)
 	self.tile_count_x = math.ceil(width / TILE_SIZE) + 1
 	self.tile_count_y = math.ceil(height / TILE_SIZE) + 1
 	self.layer_id = g(1, 0)
-	self.batch_id = g(2, self.layer_id, 2)
+	self.batch_id = g(2, self.layer_id, 0x1000)
 	self.tile_list = List()
 	local y = 0
 	for ty = 1, self.tile_count_y do
@@ -178,8 +178,11 @@ function GameLogic:_init(g, w, h)
 
 	print('hahaha')
 	self.layer_id = g(1, 0)
-	self.batch_id = g(2, self.layer_id, 1)
+	self.batch_id = g(2, self.layer_id, 0x2000)
 	self.tile_id = g(3, self.batch_id)
+	g(7, self.tile_id, 20)
+	self.gizmos_batch_id = g(2, self.layer_id, -1)
+	self.gizmos_id = g(3, self.gizmos_batch_id)
 	self.x = 0
 	self.y = 0
 end
@@ -193,9 +196,12 @@ function GameLogic:Tick(g)
 	local ox, oy = camera:GetOffset()
 	self.land:UpdateGraphic(g, ox, oy)
 
-	self.x = math.fmod(self.x + 1, 320)
-	self.y = math.fmod(self.y + 1, 240)
-	g(6, self.tile_id, self.x, self.y)
+	local x = math.fmod(self.x + 1, 320)
+	local y = math.fmod(self.y + 1, 240)
+	self.x = x
+	self.y = y
+	g(6, self.tile_id, x, y)
+	g(6, self.gizmos_id, x, y)
 end
 
 return {
