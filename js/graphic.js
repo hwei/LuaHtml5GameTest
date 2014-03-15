@@ -235,6 +235,7 @@ var get_animator = (function () {
         frame_id: 'walk_W.png',
         length: 0,
         scale: {x: -1, y: 1},
+        anchor: {x: 0.5, y: 0.96875},
       }],
     }, {
       name: 'walk',
@@ -243,18 +244,46 @@ var get_animator = (function () {
         frame_id: 'walk_W.png',
         length: 10,
         scale: {x: -1, y: 1},
+        anchor: {x: 0.5, y: 0.96875},
       }, {
         frame_id: 'walk_W_L.png',
         length: 10,
         scale: {x: -1, y: 1},
+        anchor: {x: 0.5, y: 0.96875},
       }, {
         frame_id: 'walk_W.png',
         length: 10,
         scale: {x: -1, y: 1},
+        anchor: {x: 0.5, y: 0.96875},
       }, {
         frame_id: 'walk_W_R.png',
         length: 10,
         scale: {x: -1, y: 1},
+        anchor: {x: 0.5, y: 0.96875},
+      }],
+    }, {
+      name: 'run',
+      id: 100,
+      frames: [{
+        frame_id: 'run_W.png',
+        length: 10,
+        scale: {x: -1, y: 1},
+        anchor: {x: 0.5, y: 0.96875},
+      }, {
+        frame_id: 'run_W_L.png',
+        length: 10,
+        scale: {x: -1, y: 1},
+        anchor: {x: 0.5, y: 0.96875},
+      }, {
+        frame_id: 'run_W.png',
+        length: 10,
+        scale: {x: -1, y: 1},
+        anchor: {x: 0.5, y: 0.96875},
+      }, {
+        frame_id: 'run_W_R.png',
+        length: 10,
+        scale: {x: -1, y: 1},
+        anchor: {x: 0.5, y: 0.96875},
       }],
     }],
   };
@@ -274,6 +303,7 @@ var get_animator = (function () {
           frame: frame,
           length: frame_info.length,
           scale: frame_info.scale,
+          anchor: frame_info.anchor,
         });
       }
       cooked_data[anim_data.id] = frames;
@@ -285,6 +315,8 @@ var get_animator = (function () {
     this.data = data;
     this.pixi_obj = new PIXI.Sprite(this.data[0][0].frame);
     this.Animate(0);
+    this.offset_x = 0;
+    this.offset_y = 0;
   }
 
   _Animator.prototype.Animate = function (animate_id) {
@@ -310,7 +342,14 @@ var get_animator = (function () {
         this.frame_idx = 0;
         frame_info = frame_list[0];
       }
-      this.pixi_obj.setTexture(frame_info.frame);
+      var scale_x = frame_info.scale.x;
+      var scale_y = frame_info.scale.y;
+      var frame = frame_info.frame;
+      this.pixi_obj.setTexture(frame);
+      this.pixi_obj.scale.x = scale_x;
+      this.pixi_obj.scale.y = scale_y;
+      this.pixi_obj.anchor.x = frame_info.anchor.x;
+      this.pixi_obj.anchor.y = frame_info.anchor.y;
     }
   };
 

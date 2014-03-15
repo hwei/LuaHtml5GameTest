@@ -180,11 +180,11 @@ function GameLogic:_init(g, w, h)
 	self.layer_id = g(1, 0)
 	self.batch_id = g(2, self.layer_id, 0x2000)
 	self.tile_id = g(3, self.batch_id)
-	g(7, self.tile_id, 20)
+	g(7, self.tile_id, 100)
 	self.gizmos_batch_id = g(2, self.layer_id, -1)
 	self.gizmos_id = g(3, self.gizmos_batch_id)
-	self.x = 0
-	self.y = 0
+	self.x = 200
+	self.y = 100
 end
 
 function GameLogic:Input(keycode, ...)
@@ -196,10 +196,12 @@ function GameLogic:Tick(g)
 	local ox, oy = camera:GetOffset()
 	self.land:UpdateGraphic(g, ox, oy)
 
-	local x = math.fmod(self.x + 1, 320)
-	local y = math.fmod(self.y + 1, 240)
-	self.x = x
-	self.y = y
+	-- local x = math.fmod(self.x + 1, 320)
+	-- local y = math.fmod(self.y + 1, 240)
+	-- self.x = x
+	-- self.y = y
+	local x = self.x
+	local y = self.y
 	g(6, self.tile_id, x, y)
 	g(6, self.gizmos_id, x, y)
 end
