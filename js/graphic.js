@@ -60,9 +60,14 @@ function _BatchGizmos (bid) {
     graphics.lineStyle(1, 0xff00ff, 1);
     for (var i in gizmos_list) {
       var gizmos = gizmos_list[i];
-      var x = gizmos.x;
-      var y = gizmos.y;
-      graphics.drawCircle(gizmos.x, gizmos.y, 1);
+      var left = gizmos.left;
+      var right = gizmos.right;
+      var top = gizmos.top;
+      var bottom = gizmos.bottom;
+      graphics.drawRect(
+        gizmos.x - left, gizmos.y - top,
+        left + right, top + bottom
+      );
     }
     delete batch_tick_dict[bid];
   }
@@ -106,6 +111,10 @@ _MissingTile.prototype.Style = function() {};
 function _GizmosTile(changed_callback) {
   this.x = 0;
   this.y = 0;
+  this.left = 1;
+  this.right = 1;
+  this.top = 1;
+  this.bottom = 1;
   this.changed_callback = changed_callback;
 }
 
@@ -115,7 +124,13 @@ _GizmosTile.prototype.Position = function(x, y) {
   this.changed_callback();
 };
 
-_GizmosTile.prototype.Style = function() {};
+_GizmosTile.prototype.Style = function(left, right, top, bottom) {
+  this.left = left;
+  this.right = right;
+  this.top = top;
+  this.bottom = bottom;
+  this.changed_callback();
+};
 
 
 var g = {};
@@ -258,6 +273,15 @@ var get_animator = (function () {
       }, {
         frame_id: 'walk_W_R.png',
         length: 10,
+        scale: {x: -1, y: 1},
+        anchor: {x: 0.5, y: 0.96875},
+      }],
+    }, {
+      name: 'jump',
+      id: 40,
+      frames: [{
+        frame_id: 'walk_W.png',
+        length: 0,
         scale: {x: -1, y: 1},
         anchor: {x: 0.5, y: 0.96875},
       }],

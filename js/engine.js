@@ -152,6 +152,22 @@ $(function () {
     C.lua_pushnumber(L, height); // graphic_func, GameLogic, graphic_func, width, height
     C.lua_call(L, 3, 1); // graphic_func, game_logic
 
+    // game input
+    $('body').keydown(function (event) {
+      C.lua_getfield(L, -1, 'Input'); // graphic_func, game_logic, Input
+      C.lua_pushvalue(L, -2); // graphic_func, game_logic, Input, game_logic
+      C.lua_pushnumber(L, event.keyCode); // graphic_func, game_logic, Input, keyCode
+      C.lua_pushnumber(L, 1); // graphic_func, game_logic, Input, keyCode, 1
+      C.lua_call(L, 3, 0); // graphic_func, game_logic
+    })
+    $('body').keyup(function (event) {
+      C.lua_getfield(L, -1, 'Input'); // graphic_func, game_logic, Input
+      C.lua_pushvalue(L, -2); // graphic_func, game_logic, Input, game_logic
+      C.lua_pushnumber(L, event.keyCode); // graphic_func, game_logic, Input, keyCode
+      C.lua_pushnumber(L, 0); // graphic_func, game_logic, Input, keyCode, 0
+      C.lua_call(L, 3, 0); // graphic_func, game_logic
+    })
+
     // stats
     var graphic_stats = new Stats();
     var logic_stats = new Stats();
