@@ -25,7 +25,13 @@ $(function () {
     'pl/class.lua',
     'pl/utils.lua',
     'pl/compat.lua',
+    'pl/List.lua',
+    'pl/tablex.lua',
+    'pl/types.lua',
   ];
+
+  var width = 320;
+  var height = 240;
 
   (function load_all_resource(callback){
     var graphic = null;
@@ -55,7 +61,7 @@ $(function () {
       $.get('lua/' + filename, gen_loaded_lua(filename));
     }
 
-    var renderer = PIXI.autoDetectRenderer(320, 240, $('#Screen')[0]);
+    var renderer = PIXI.autoDetectRenderer(width, height, $('#Screen')[0]);
     LoadGraphic(
       renderer,
       function (g) {
@@ -77,6 +83,33 @@ $(function () {
     var L = C.lua_open();
     C.luaL_openlibs(L);
 
+    C.lua_getglobal(L, 'package'); // package
+    C.lua_getfield(L, -1, 'loaded'); // package, loaded
+    C.lua_remove(L, -2); // loaded
+
+    // seed random module
+    C.lua_createtable(L, 0, 2);
+    C.lua_pushcfunction(L,
+      Lua5_1.Runtime.addFunction(function (L) {
+        var seed = C.luaL_checknumber(L, 1);
+        Math.seedrandom(seed);
+        return 0;
+      })
+    );
+    C.lua_setfield(L, -2, 'setseed');
+    C.lua_pushcfunction(L,
+      Lua5_1.Runtime.addFunction(function (L) {
+        var r = Math.random();
+        C.lua_pushnumber(L, r);
+        return 1;
+      })
+    );
+    C.lua_setfield(L, -2, 'getrandom');
+    // loaded, seedrandom
+
+    C.lua_setfield(L, -2, 'seedrandom'); // loaded
+    C.lua_pop(L, 1); //
+
     // graphic callback
     var graphic_func_dict = {
       1: graphic.CreateLayer,
@@ -85,14 +118,18 @@ $(function () {
       4: graphic.LayerPosition,
       5: graphic.LayerStyle,
       6: graphic.TilePosition,
-      7: graphic.TileFrame,
+      7: graphic.TileStyle,
     };
     var temp_args = [];
     C.lua_pushcfunction(
       L,
       Lua5_1.Runtime.addFunction(function (L) {
         var n = C.lua_gettop(L);
-        var f = graphic_func_dict[C.luaL_checknumber(L, 1)];
+        var fid = C.luaL_checknumber(L, 1);
+        var f = graphic_func_dict[fid];
+        if (!f) {
+          throw 'Invalid graphic call: ' + fid;
+        }
         for (var i = 2; i <= n; ++i) {
           var t = C.luaL_checknumber(L, i);
           temp_args[i - 2] = t;
@@ -102,23 +139,34 @@ $(function () {
         return 1;
       })
     );
-    var graphic_func = C.luaL_ref(L, C.LUA_REGISTRYINDEX);
+    // graphic_func
 
-    // game logic object
+    // game logic init
     C.lua_getglobal(L, 'require');
     C.lua_pushstring(L, 'main');
-    C.lua_call(L, 1, 1); // module
-    C.lua_getfield(L, -1, 'GameLogic'); // module, GameLogic
-    C.lua_remove(L, -2); // GameLogic
-    C.lua_call(L, 0, 1); // game_logic
-    var game_logic = C.luaL_ref(L, C.LUA_REGISTRYINDEX); //
+    C.lua_call(L, 1, 1); // graphic_func, module
+    C.lua_getfield(L, -1, 'GameLogic'); // graphic_func, module, GameLogic
+    C.lua_remove(L, -2); // graphic_func, GameLogic
+    C.lua_pushvalue(L, -2); // graphic_func, GameLogic, graphic_func
+    C.lua_pushnumber(L, width); // graphic_func, GameLogic, graphic_func, width
+    C.lua_pushnumber(L, height); // graphic_func, GameLogic, graphic_func, width, height
+    C.lua_call(L, 3, 1); // graphic_func, game_logic
 
-    // init
-    C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, game_logic); // game_logic
-    C.lua_getfield(L, -1, 'Init'); // game_logic, Init
-    C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, game_logic); // game_logic, Init, game_logic
-    C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, graphic_func); // game_logic, Init, game_logic, graphic_func
-    C.lua_call(L, 2, 0); // game_logic
+    // game input
+    $('body').keydown(function (event) {
+      C.lua_getfield(L, -1, 'Input'); // graphic_func, game_logic, Input
+      C.lua_pushvalue(L, -2); // graphic_func, game_logic, Input, game_logic
+      C.lua_pushnumber(L, event.keyCode); // graphic_func, game_logic, Input, keyCode
+      C.lua_pushnumber(L, 1); // graphic_func, game_logic, Input, keyCode, 1
+      C.lua_call(L, 3, 0); // graphic_func, game_logic
+    })
+    $('body').keyup(function (event) {
+      C.lua_getfield(L, -1, 'Input'); // graphic_func, game_logic, Input
+      C.lua_pushvalue(L, -2); // graphic_func, game_logic, Input, game_logic
+      C.lua_pushnumber(L, event.keyCode); // graphic_func, game_logic, Input, keyCode
+      C.lua_pushnumber(L, 0); // graphic_func, game_logic, Input, keyCode, 0
+      C.lua_call(L, 3, 0); // graphic_func, game_logic
+    })
 
     // stats
     var graphic_stats = new Stats();
@@ -135,20 +183,36 @@ $(function () {
         }
     });
 
+    var draw_tick = 0;
+
     // tick
-    setInterval(function () {
+    var interval_id = setInterval(function () {
       logic_stats.begin();
-      C.lua_getfield(L, -1, 'Tick'); // game_logic, Tick
-      C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, game_logic); // game_logic, Tick, game_logic
-      C.lua_rawgeti(L, C.LUA_REGISTRYINDEX, graphic_func); // game_logic, Tick, game_logic, graphic_func
-      C.lua_call(L, 2, 0); // game_logic
+      C.lua_getfield(L, -1, 'Tick'); // graphic_func, game_logic, Tick
+      C.lua_pushvalue(L, -2); // graphic_func, game_logic, Tick, game_logic
+      C.lua_pushvalue(L, -4); // graphic_func, game_logic, Tick, game_logic, graphic_func
+      try {
+        C.lua_call(L, 2, 0); // graphic_func, game_logic
+      } catch (err) {
+        clearInterval(interval_id);
+        throw err;
+      }
+      draw_tick += 1;
       logic_stats.end();
     }, 1000 / 60);
 
     // draw
     function draw() {
       graphic_stats.begin();
-      graphic.Draw();
+      var need_draw = false;
+      while(draw_tick > 0) {
+        draw_tick -= 1;
+        graphic.Tick();
+        need_draw = true;
+      }
+      if (need_draw) {
+        graphic.Draw();
+      }
       graphic_stats.end();
       window.requestAnimationFrame(draw);
     }
